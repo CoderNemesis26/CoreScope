@@ -1,6 +1,6 @@
 # CoreScope QA artifacts
 
-Project-specific assets for the [`qa-suite`](https://github.com/Kpa-clawbot/ai-sdlc/tree/master/skills/qa-suite) skill.
+Project-specific assets for the [`qa-suite`](https://github.com/CoderNemesis26/ai-sdlc/tree/master/skills/qa-suite) skill.
 
 ## Layout
 

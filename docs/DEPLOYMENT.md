@@ -83,7 +83,7 @@ docker --version
 The easiest way — use the management script:
 
 ```bash
-git clone https://github.com/Kpa-clawbot/corescope.git
+git clone https://github.com/CoderNemesis26/corescope.git
 cd corescope
 ./manage.sh setup
 ```
@@ -111,7 +111,7 @@ flowchart LR
 ### 1. Download the code
 
 ```bash
-git clone https://github.com/Kpa-clawbot/corescope.git
+git clone https://github.com/CoderNemesis26/corescope.git
 cd corescope
 ```
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The current customizer (`public/customize.js`) suffers from fundamental state management issues documented in [issue #284](https://github.com/Kpa-clawbot/CoreScope/issues/284). State is scattered across 7 localStorage keys, CSS updates bypass the data layer, and there's no single source of truth for the effective configuration.
+The current customizer (`public/customize.js`) suffers from fundamental state management issues documented in [issue #284](https://github.com/CoderNemesis26/CoreScope/issues/284). State is scattered across 7 localStorage keys, CSS updates bypass the data layer, and there's no single source of truth for the effective configuration.
 
 This spec defines a clean rework based on event-driven state management with a single data flow path. The goal: predictable state, minimal storage footprint, portable config format, and zero ambiguity about which values are active and why.
 

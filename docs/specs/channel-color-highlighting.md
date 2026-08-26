@@ -1,7 +1,7 @@
 # Channel Color Highlighting Spec
 
 **Status:** Proposed  
-**Issue:** [#271](https://github.com/Kpa-clawbot/CoreScope/issues/271)  
+**Issue:** [#271](https://github.com/CoderNemesis26/CoreScope/issues/271)  
 **Author:** Stinkmeaner (AI)  
 **Date:** 2026-04-05
 

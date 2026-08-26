@@ -6,7 +6,7 @@ Deep knowledge of every frontend behavior, API response, and user-facing feature
 
 **Project:** CoreScope — Real-time LoRa mesh packet analyzer
 **Stack:** Vanilla JS frontend (public/*.js), Node.js backend, SQLite, WebSocket, MQTT
-**User:** Kpa-clawbot
+**User:** CoderNemesis26
 
 ## Responsibilities
 
