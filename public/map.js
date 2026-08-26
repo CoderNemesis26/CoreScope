@@ -1017,6 +1017,7 @@
       const params = new URLSearchParams(qs);
       const packetHash = params.get('packet');
       const obsId = params.get('obs');
+      const obsPubicKey = params.get('obsPublicKey');
       if (!packetHash) return;
       // Wait for nodes to load (drawPacketRoute / Multi rely on `nodes` array
       // for the local-fallback resolver).
@@ -1035,6 +1036,7 @@
       // Pick the user-chosen observation by id, fall back to first
       let chosen = null;
       if (obsId) chosen = observations.find(o => String(o.id) === String(obsId));
+      else if (obsPubicKey) chosen = observations.find(o => String(o.observer_id) === String(obsPubicKey));
       if (!chosen) chosen = observations[0];
       // Parse decoded for src/dst.
       // Try observation first, fall back to packet-level decoded_json (GRP_TXT
