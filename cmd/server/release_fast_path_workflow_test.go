@@ -51,12 +51,12 @@ func TestReleaseFastPathWorkflowExists(t *testing.T) {
 	//   - re-tag path: install crane, read :edge revision label, apply new tags
 	//   - fallback path: dispatch the existing deploy.yml pipeline
 	required := []string{
-		"imjasonh/setup-crane",              // crane install action
-		"org.opencontainers.image.revision", // label inspected on :edge
-		"ghcr.io/kpa-clawbot/corescope",     // image ref
-		":edge",                             // source tag we copy from
-		"crane tag",                         // metadata-only retag
-		"workflow run deploy.yml",           // fallback dispatch
+		"imjasonh/setup-crane",                  // crane install action
+		"org.opencontainers.image.revision",     // label inspected on :edge
+		"ghcr.io/CoderNemesis26/corescope",         // image ref
+		":edge",                                 // source tag we copy from
+		"crane tag",                             // metadata-only retag
+		"workflow run deploy.yml",               // fallback dispatch
 	}
 	for _, need := range required {
 		if !strings.Contains(src, need) {
