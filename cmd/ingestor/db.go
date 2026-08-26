@@ -1258,7 +1258,7 @@ func (s *Store) CheckAutoVacuum(cfg *Config) {
 
 	log.Printf("[db] auto_vacuum=%s — DB needs one-time VACUUM to enable incremental auto-vacuum. "+
 		"Set db.vacuumOnStartup: true in config to migrate (will block startup for several minutes on large DBs). "+
-		"See https://github.com/Kpa-clawbot/CoreScope/issues/919", mode)
+		"See https://github.com/CoderNemesis26/CoreScope/issues/919", mode)
 
 	if cfg.DB != nil && cfg.DB.VacuumOnStartup {
 		// WARNING: Full VACUUM creates a temporary copy of the entire DB file.

@@ -22,5 +22,5 @@ See [`docs/deployment.md`](./deployment.md#behind-a-cdn-cloudflare-fastly)
 for the full discussion (Fastly equivalent, why the origin header
 alone isn't sufficient, what the startup warning means).
 
-Issue: [#1561](https://github.com/Kpa-clawbot/CoreScope/issues/1561).
-Related: [#1551](https://github.com/Kpa-clawbot/CoreScope/issues/1551).
+Issue: [#1561](https://github.com/CoderNemesis26/CoreScope/issues/1561).
+Related: [#1551](https://github.com/CoderNemesis26/CoreScope/issues/1551).

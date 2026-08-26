@@ -1,11 +1,11 @@
 ---
 name: corescope-release
-description: Cut a CoreScope release end-to-end — verify CI green on target SHA, finalize notes, tag, wait for tag-CI to publish the container, verify in GHCR, then (and only then) hand the operator upgrade commands. Use for any "ship vX.Y.Z" or "tag the release" request on Kpa-clawbot/CoreScope. Prevents the v3.9.0 fire-drill class: tagging a SHA whose CI fails → no Docker publish → operator gets 404 from upgrade commands. Triggers: 'cut release', 'tag vX.Y.Z', 'ship vX.Y.Z', 'release CoreScope', 'publish vX.Y.Z'.
+description: Cut a CoreScope release end-to-end — verify CI green on target SHA, finalize notes, tag, wait for tag-CI to publish the container, verify in GHCR, then (and only then) hand the operator upgrade commands. Use for any "ship vX.Y.Z" or "tag the release" request on CoderNemesis26/CoreScope. Prevents the v3.9.0 fire-drill class: tagging a SHA whose CI fails → no Docker publish → operator gets 404 from upgrade commands. Triggers: 'cut release', 'tag vX.Y.Z', 'ship vX.Y.Z', 'release CoreScope', 'publish vX.Y.Z'.
 ---
 
 # corescope-release
 
-End-to-end release for `Kpa-clawbot/CoreScope`. Read every step. Skip none.
+End-to-end release for `CoderNemesis26/CoreScope`. Read every step. Skip none.
 
 ## Hard lessons that earned each step
 
@@ -17,7 +17,7 @@ End-to-end release for `Kpa-clawbot/CoreScope`. Read every step. Skip none.
 | Slideover test flaked all day, treated as noise, blocked release (2026-06-11/12) | §1.5 |
 | Test fix pushed direct-to-master, sat red on master post-release (2026-06-12) | §1.4 |
 | Acks listed from memory missed an external contributor (4 PRs) (2026-06-12) | §2 |
-| Earlier tags created by `mc-bot`/`openclaw-bot`; current Kpa-clawbot token couldn't tag without immutability disabled (2026-06-12) | §3.2 |
+| Earlier tags created by `mc-bot`/`openclaw-bot`; current CoderNemesis26 token couldn't tag without immutability disabled (2026-06-12) | §3.2 |
 
 ## Inputs
 
@@ -39,7 +39,7 @@ If the resulting commit subject starts with `[skip ci]` (defensive): STOP, walk 
 
 ### 1.2 Verify master CI green ON THAT SHA
 ```bash
-gh run list -R Kpa-clawbot/CoreScope --branch master --commit "$TAG_SHA" \
+gh run list -R CoderNemesis26/CoreScope --branch master --commit "$TAG_SHA" \
   --json conclusion,databaseId,headSha,displayTitle \
   -q '.[] | "\(.databaseId) \(.conclusion) \(.headSha[0:8]) - \(.displayTitle[0:60])"'
 ```
@@ -47,18 +47,18 @@ ALL CI/CD Pipeline jobs that aren't `skipping` must be `success`. If the most-re
 
 ### 1.3 Verify GHCR `:edge` matches TAG_SHA (proves Docker step actually ran on this SHA)
 ```bash
-TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:kpa-clawbot/corescope:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:CoderNemesis26/corescope:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
 curl -sL -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.oci.image.index.v1+json" \
-  "https://ghcr.io/v2/kpa-clawbot/corescope/manifests/edge" > /tmp/m-edge.json
+  "https://ghcr.io/v2/CoderNemesis26/corescope/manifests/edge" > /tmp/m-edge.json
 # Get amd64 manifest digest
 AMD64_DIGEST=$(jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest' /tmp/m-edge.json)
 # Pull config blob
 curl -sL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.oci.image.manifest.v1+json" \
-  "https://ghcr.io/v2/kpa-clawbot/corescope/manifests/$AMD64_DIGEST" > /tmp/m-amd64.json
+  "https://ghcr.io/v2/CoderNemesis26/corescope/manifests/$AMD64_DIGEST" > /tmp/m-amd64.json
 CFG_DIGEST=$(jq -r '.config.digest' /tmp/m-amd64.json)
 curl -sL -H "Authorization: Bearer $TOKEN" \
-  "https://ghcr.io/v2/kpa-clawbot/corescope/blobs/$CFG_DIGEST" > /tmp/cfg-edge.json
+  "https://ghcr.io/v2/CoderNemesis26/corescope/blobs/$CFG_DIGEST" > /tmp/cfg-edge.json
 IMG_SHA=$(jq -r '.config.Labels["org.opencontainers.image.revision"]' /tmp/cfg-edge.json)
 echo "edge image SHA: $IMG_SHA"
 echo "target SHA:     $(git rev-parse $TAG_SHA)"
@@ -71,7 +71,7 @@ If you've pushed test infrastructure changes direct to master within the last 4 
 ### 1.5 No known-flaky tests left untreated
 ```bash
 # Quick scan: any test that's flaked 3+ times in last 24h master runs?
-gh run list -R Kpa-clawbot/CoreScope --branch master --limit 20 \
+gh run list -R CoderNemesis26/CoreScope --branch master --limit 20 \
   --json conclusion,databaseId,createdAt,headSha -q '.[] | select(.conclusion=="failure") | .databaseId' | head -20
 ```
 For each: skim the failed test name. If the same test appears 3+ times across recent failures, that's the flake of the day — file an issue + fix BEFORE the release. Don't ship with "it's flaky, just re-run."
@@ -83,11 +83,11 @@ For each: skim the failed test name. If the same test appears 3+ times across re
 PREV_TAG=$(git tag -l "v*" | sort -V | tail -1)
 echo "Previous tag: $PREV_TAG"
 # All merged PRs in window, grouped by author — copy directly
-gh pr list -R Kpa-clawbot/CoreScope --search "merged:>$(git log -1 $PREV_TAG --format=%aI)" --state merged \
+gh pr list -R CoderNemesis26/CoreScope --search "merged:>$(git log -1 $PREV_TAG --format=%aI)" --state merged \
   --json number,title,author,mergedAt --limit 300 \
   -q '[.[] | {n:.number, a:.author.login, t:(.title[0:60])}] | group_by(.a) | map({author:.[0].a, count:length, prs:[.[].n]})'
 ```
-Every author OTHER than the bot account (`Kpa-clawbot`) is an external contributor. ALL of them get an Acknowledgements bullet with their PR list. No exceptions, no "I'll remember the others."
+Every author OTHER than the bot account (`CoderNemesis26`) is an external contributor. ALL of them get an Acknowledgements bullet with their PR list. No exceptions, no "I'll remember the others."
 
 ### 2.2 Highlights = operator-felt impact, not changelog ToC
 Bad highlight: "M2: emoji → Phosphor Icons in page headers and table chrome (#1650)"
@@ -125,11 +125,11 @@ The notes commit becomes the new TAG_SHA candidate. Verify CI passed on it AND `
 ### 3.2 Verify tag bypass actor list — current bot token must be in it
 ```bash
 # Confirm current auth user
-gh api /user --jq '.login'  # should be Kpa-clawbot
+gh api /user --jq '.login'  # should be CoderNemesis26
 
 # If user changed (e.g. mc-bot / openclaw-bot tokens were retired),
 # check whether the current account can create tag refs:
-gh api -X POST repos/Kpa-clawbot/CoreScope/git/refs \
+gh api -X POST repos/CoderNemesis26/CoreScope/git/refs \
   -f ref="refs/tags/precheck-$(date +%s)" -f sha="$(git rev-parse $TAG_SHA)" 2>&1 | head -c 300
 # If success: delete the precheck ref, proceed.
 # If GH013: report to user, ruleset/immutability needs adjustment before tagging.
@@ -138,7 +138,7 @@ gh api -X POST repos/Kpa-clawbot/CoreScope/git/refs \
 ### 3.3 Verify the tag NAME isn't immutable-reserved
 A `gh release create vX.Y.Z` that ever ran (even and especially if it failed) reserves the name forever under GitHub's immutable-releases feature. Check:
 ```bash
-gh api "repos/Kpa-clawbot/CoreScope/releases/tags/vX.Y.Z" 2>&1 | head -c 200
+gh api "repos/CoderNemesis26/CoreScope/releases/tags/vX.Y.Z" 2>&1 | head -c 200
 # 404 = name free. Anything else = name in use or reserved.
 ```
 If reserved: bump to next patch/minor. **Never** try to "free" it via support tickets — by the time it's resolved you've lost the day.
@@ -155,7 +155,7 @@ Pushing the tag triggers a `push:tag` event → CI/CD Pipeline reruns → Docker
 
 ```bash
 sleep 30  # let it queue
-TAG_RUN=$(gh run list -R Kpa-clawbot/CoreScope --event push --branch vX.Y.Z --limit 1 --json databaseId -q '.[0].databaseId')
+TAG_RUN=$(gh run list -R CoderNemesis26/CoreScope --event push --branch vX.Y.Z --limit 1 --json databaseId -q '.[0].databaseId')
 echo "Tag run: $TAG_RUN — polling..."
 # Poll until terminal. Cap 35min. NEVER --admin, NEVER bypass.
 ```
@@ -169,7 +169,7 @@ git show origin/master:docs/release-notes/vX.Y.Z.md > /tmp/relbody.md
 sed -i '1,2d' /tmp/relbody.md  # strip the `# CoreScope vX.Y.Z` title — GH adds its own
 # PII grep again
 grep -nEi '...' /tmp/relbody.md && echo "PII HIT" || echo "PII clean"
-gh release create vX.Y.Z -R Kpa-clawbot/CoreScope \
+gh release create vX.Y.Z -R CoderNemesis26/CoreScope \
   --title "CoreScope vX.Y.Z" --notes-file /tmp/relbody.md --verify-tag
 ```
 
@@ -178,11 +178,11 @@ gh release create vX.Y.Z -R Kpa-clawbot/CoreScope \
 Same probe as §1.3, but checking `:vX.Y.Z` instead of `:edge`:
 
 ```bash
-TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:kpa-clawbot/corescope:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:CoderNemesis26/corescope:pull" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
 HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.oci.image.index.v1+json" \
-  "https://ghcr.io/v2/kpa-clawbot/corescope/manifests/vX.Y.Z")
+  "https://ghcr.io/v2/CoderNemesis26/corescope/manifests/vX.Y.Z")
 echo ":vX.Y.Z manifest HTTP: $HTTP"
 ```
 
@@ -200,7 +200,7 @@ Post upgrade commands ONLY now. For MikroTik RouterOS:
 
 ```
 # Always one-line (RouterOS doesn't accept `\` continuations)
-/container add remote-image=ghcr.io/kpa-clawbot/corescope:vX.Y.Z envlist=cs-env mounts=cs-data,cs-caddyfile interface=veth-corescope start-on-boot=yes name=corescope-prod-vXYZ
+/container add remote-image=ghcr.io/CoderNemesis26/corescope:vX.Y.Z envlist=cs-env mounts=cs-data,cs-caddyfile interface=veth-corescope start-on-boot=yes name=corescope-prod-vXYZ
 # Wait for status=stopped (pull complete)
 /container print where name=corescope-prod-vXYZ
 # Swap
@@ -212,7 +212,7 @@ curl -sf https://<prod-host>/api/stats | jq '.version,.commit'
 
 For docker-compose:
 ```
-ghcr.io/kpa-clawbot/corescope:vX.Y.Z  # or pin the digest
+ghcr.io/CoderNemesis26/corescope:vX.Y.Z  # or pin the digest
 ```
 
 ## Drafted-but-not-shipped state
