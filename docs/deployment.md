@@ -38,7 +38,7 @@ CoreScope runs well on Raspberry Pi 4/5 (ARM64). The Go server uses ~300 MB RAM 
 docker run -d --name corescope \
   -p 80:80 \
   -v corescope-data:/app/data \
-  ghcr.io/CoderNemesis26/corescope:latest
+  ghcr.io/kpa-clawbot/corescope:latest
 ```
 
 Open `http://localhost` — you'll see an empty dashboard ready to receive packets.
@@ -62,7 +62,7 @@ docker run -d --name corescope \
   -v /your/data:/app/data \
   -v /your/Caddyfile:/etc/caddy/Caddyfile:ro \
   -v /your/caddy-data:/data/caddy \
-  ghcr.io/CoderNemesis26/corescope:latest
+  ghcr.io/kpa-clawbot/corescope:latest
 ```
 
 #### Parameters
@@ -97,7 +97,7 @@ The entrypoint sources this file before starting services. This works with any l
 Docker Compose files are maintained for backward compatibility but are no longer the recommended approach.
 
 ```bash
-curl -sL https://raw.githubusercontent.com/CoderNemesis26/CoreScope/master/docker-compose.example.yml \
+curl -sL https://raw.githubusercontent.com/Kpa-clawbot/CoreScope/master/docker-compose.example.yml \
   -o docker-compose.yml
 docker compose up -d
 ```
@@ -135,7 +135,7 @@ docker compose up -d
 For `docker run` users:
 
 ```bash
-docker pull ghcr.io/CoderNemesis26/corescope:latest
+docker pull ghcr.io/kpa-clawbot/corescope:latest
 docker stop corescope && docker rm corescope
 docker run -d --name corescope ... # same flags as before
 ```
@@ -171,7 +171,7 @@ docker run -d --name corescope \
   -p 80:80 \
   -v corescope-data:/app/data \
   -v ./config.json:/app/data/config.json:ro \
-  ghcr.io/CoderNemesis26/corescope:latest
+  ghcr.io/kpa-clawbot/corescope:latest
 ```
 
 See `config.example.json` in the repository for all available options including:
@@ -241,7 +241,7 @@ The built-in Mosquitto broker listens on port 1883 inside the container. Point y
 docker run -d --name corescope \
   -p 80:80 -p 1883:1883 \
   -v corescope-data:/app/data \
-  ghcr.io/CoderNemesis26/corescope:latest
+  ghcr.io/kpa-clawbot/corescope:latest
 ```
 
 ### External broker
@@ -347,7 +347,7 @@ The container includes Caddy for automatic Let's Encrypt certificates:
      -v corescope-data:/app/data \
      -v caddy-certs:/data/caddy \
      -v ./Caddyfile:/etc/caddy/Caddyfile:ro \
-     ghcr.io/CoderNemesis26/corescope:latest
+     ghcr.io/kpa-clawbot/corescope:latest
    ```
 
 Caddy handles certificate issuance and renewal automatically.

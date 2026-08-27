@@ -24,7 +24,7 @@ MeshCore Analyzer has been renamed to **CoreScope**. This document covers what y
 Update your local clone to point to the new repository URL:
 
 ```bash
-git remote set-url origin https://github.com/CoderNemesis26/corescope.git
+git remote set-url origin https://github.com/Kpa-clawbot/corescope.git
 git pull
 ```
 

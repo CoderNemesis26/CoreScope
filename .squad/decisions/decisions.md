@@ -343,7 +343,7 @@ Playwright E2E tests (16 tests in `test-e2e-playwright.js`) are slow in CI. Anal
 ---
 
 ### 2026-03-27T20:56:00Z — Protobuf API Contract (Merged)
-**By:** CoderNemesis26 (via Copilot)  
+**By:** Kpa-clawbot (via Copilot)  
 **Decision:** 
 1. All frontend/backend interfaces get protobuf definitions as single source of truth
 2. Go generates structs with JSON tags from protos; Node stays unchanged — protos derived from Node's current JSON shapes

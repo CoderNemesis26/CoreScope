@@ -1,7 +1,7 @@
 /* === CoreScope — perf.js === */
 'use strict';
 
-var GH = 'https://github.com/CoderNemesis26/corescope';
+var GH = 'https://github.com/Kpa-clawbot/corescope';
 
 // detectPerfAnomalies — pure, testable.
 // Computes per-component write rates over a rolling time window and flags any
