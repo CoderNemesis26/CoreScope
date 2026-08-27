@@ -575,7 +575,10 @@ func spaHandler(root string, fs http.Handler) http.Handler {
 		rawHTML = []byte("<!DOCTYPE html><html><body><h1>CoreScope</h1><p>index.html not found</p></body></html>")
 	}
 	bustValue := fmt.Sprintf("%d", time.Now().Unix())
-	indexHTML := []byte(strings.ReplaceAll(string(rawHTML), "__BUST__", bustValue))
+	indexHTML := []byte(
+		strings.ReplaceAll(string(rawHTML), "__BUST__", bustValue)
+			.ReplaceAll("__URL__", os.Getenv("CORESCOPE_URL") || "https://analyzer.00id.net")
+	)
 	log.Printf("[static] cache-bust value: %s", bustValue)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
