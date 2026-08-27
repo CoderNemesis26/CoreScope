@@ -79,4 +79,4 @@ sqlite3 data/meshcore.db "PRAGMA auto_vacuum;"
 - `1` = FULL (automatic, but slower writes)
 - `2` = INCREMENTAL (recommended — CoreScope triggers vacuum after deletes)
 
-See [#919](https://github.com/CoderNemesis26/CoreScope/issues/919) for background on this feature.
+See [#919](https://github.com/Kpa-clawbot/CoreScope/issues/919) for background on this feature.

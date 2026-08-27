@@ -24,11 +24,11 @@ docker exec corescope-prod /app/corescope-decrypt --channel "#wardriving" --db /
 
 ### From GitHub release
 
-Download the static binary from the [Releases](https://github.com/CoderNemesis26/CoreScope/releases) page:
+Download the static binary from the [Releases](https://github.com/Kpa-clawbot/CoreScope/releases) page:
 
 ```bash
 # Linux amd64
-curl -LO https://github.com/CoderNemesis26/CoreScope/releases/latest/download/corescope-decrypt-linux-amd64
+curl -LO https://github.com/Kpa-clawbot/CoreScope/releases/latest/download/corescope-decrypt-linux-amd64
 chmod +x corescope-decrypt-linux-amd64
 ./corescope-decrypt-linux-amd64 --help
 ```

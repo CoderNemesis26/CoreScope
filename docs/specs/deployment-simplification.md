@@ -1,7 +1,7 @@
 # Deployment Simplification Spec
 
 **Status:** Draft  
-**Author:** CoderNemesis26  
+**Author:** Kpa-clawbot  
 **Date:** 2026-04-05  
 
 ## Current State
@@ -41,14 +41,14 @@ CoreScope deployment today requires:
 An operator who has never seen the codebase should be able to run CoreScope with:
 
 ```bash
-docker run -d -p 80:80 -v corescope-data:/app/data ghcr.io/CoderNemesis26/corescope:v3.4.1
+docker run -d -p 80:80 -v corescope-data:/app/data ghcr.io/kpa-clawbot/corescope:v3.4.1
 ```
 
 And see live MeshCore packets from the public mesh within 60 seconds.
 
 ## Pre-built Images
 
-Publish to **GHCR** (`ghcr.io/CoderNemesis26/corescope`) on every release tag.
+Publish to **GHCR** (`ghcr.io/kpa-clawbot/corescope`) on every release tag.
 
 - **Tags:**
   - `vX.Y.Z` (e.g., `v3.4.1`) — specific release, pinned, recommended for production
@@ -84,8 +84,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/CoderNemesis26/corescope:v3.4.1
-            ghcr.io/CoderNemesis26/corescope:${{ github.ref_name }}
+            ghcr.io/kpa-clawbot/corescope:v3.4.1
+            ghcr.io/kpa-clawbot/corescope:${{ github.ref_name }}
           build-args: |
             APP_VERSION=${{ github.ref_name }}
             GIT_COMMIT=${{ github.sha }}
@@ -129,7 +129,7 @@ A single `docker-compose.yml` with profiles:
 ```yaml
 services:
   corescope:
-    image: ghcr.io/CoderNemesis26/corescope:v3.4.1
+    image: ghcr.io/kpa-clawbot/corescope:v3.4.1
     profiles: ["", "standard", "full"]  # runs in all profiles
     ports:
       - "${HTTP_PORT:-80}:80"
@@ -165,13 +165,13 @@ docker run -d --name corescope \
   -p 80:80 \
   -v corescope-data:/app/data \
   -e DISABLE_CADDY=true \
-  ghcr.io/CoderNemesis26/corescope:v3.4.1
+  ghcr.io/kpa-clawbot/corescope:v3.4.1
 ```
 
 ### With Docker Compose
 
 ```bash
-curl -sL https://raw.githubusercontent.com/CoderNemesis26/CoreScope/master/docker-compose.simple.yml -o docker-compose.yml
+curl -sL https://raw.githubusercontent.com/Kpa-clawbot/CoreScope/master/docker-compose.simple.yml -o docker-compose.yml
 docker compose up -d
 ```
 
@@ -187,7 +187,7 @@ docker compose up -d
 Or for `docker run` users:
 
 ```bash
-docker pull ghcr.io/CoderNemesis26/corescope:v3.4.1
+docker pull ghcr.io/kpa-clawbot/corescope:v3.4.1
 docker stop corescope && docker rm corescope
 docker run -d --name corescope ... # same args as before
 ```
@@ -220,7 +220,7 @@ The container ships Caddy. To enable auto-TLS:
      -v corescope-data:/app/data \
      -v caddy-certs:/data/caddy \
      -v ./Caddyfile:/etc/caddy/Caddyfile:ro \
-     ghcr.io/CoderNemesis26/corescope:v3.4.1
+     ghcr.io/kpa-clawbot/corescope:v3.4.1
    ```
 
 2. Caddyfile:
@@ -265,7 +265,7 @@ For existing operators using `manage.sh` + build-from-source:
 1. **Keep your data directory** — the bind mount path is the same
 2. **Keep your config.json** — it goes in the data directory as before
 3. **Replace `docker compose build`** with `docker compose pull`
-4. **Update docker-compose.yml** — change `build:` to `image: ghcr.io/CoderNemesis26/corescope:v3.4.1`
+4. **Update docker-compose.yml** — change `build:` to `image: ghcr.io/kpa-clawbot/corescope:v3.4.1`
 5. **manage.sh continues to work** — it wraps `docker compose` and will work with pre-built images
 
 **Breaking changes:** None expected. The container interface (ports, volumes, env vars) stays the same.

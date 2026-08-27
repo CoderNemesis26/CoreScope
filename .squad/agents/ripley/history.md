@@ -2,7 +2,7 @@
 
 ## Core Context
 - Project: CoreScope — real-time LoRa mesh packet analyzer
-- User: CoderNemesis26
+- User: Kpa-clawbot
 - Joined the team 2026-03-27 to handle community support and triage
 
 ## Learnings
@@ -12,8 +12,7 @@
   - **Infrastructure (repeaters, rooms):** 72-hour stale threshold
   - All-time node count tracked separately (new 	otalNodesAllTime field in /api/stats)
   - 7-day active window used for stats endpoint 	otalNodes display
-  - Source: getNodeStatus() in 
-oles.js, used by live page pruning every 60s
+  - Source: getNodeStatus() in oles.js, used by live page pruning every 60s
 
 - **Phantom nodes incident (2026-03-27):** Cascadia mesh instance showed 7,308 nodes (6,638 repeaters) when real count ~200-400. Root cause: utoLearnHopNodes() created stubs for unresolved hop prefixes. Fixed at backend + frontend real-time pruning. Now properly cleaned at startup.
 

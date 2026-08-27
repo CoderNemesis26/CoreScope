@@ -53,7 +53,7 @@ func TestReleaseFastPathWorkflowExists(t *testing.T) {
 	required := []string{
 		"imjasonh/setup-crane",                  // crane install action
 		"org.opencontainers.image.revision",     // label inspected on :edge
-		"ghcr.io/CoderNemesis26/corescope",         // image ref
+		"ghcr.io/kpa-clawbot/corescope",         // image ref
 		":edge",                                 // source tag we copy from
 		"crane tag",                             // metadata-only retag
 		"workflow run deploy.yml",               // fallback dispatch
