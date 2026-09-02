@@ -44,22 +44,22 @@ type MQTTLegacy struct {
 
 // Config holds the ingestor configuration, compatible with the Node.js config.json format.
 type Config struct {
-	DBPath           string                  `json:"dbPath"`
-	MQTT             *MQTTLegacy             `json:"mqtt,omitempty"`
-	MQTTSources      []MQTTSource            `json:"mqttSources,omitempty"`
-	LogLevel         string                  `json:"logLevel,omitempty"`
-	ChannelKeysPath  string                  `json:"channelKeysPath,omitempty"`
-	ChannelKeys      map[string]string       `json:"channelKeys,omitempty"`
-	HashChannels     []string                `json:"hashChannels,omitempty"`
-	HashRegions      []string                `json:"hashRegions,omitempty"`
-	Retention        *RetentionConfig        `json:"retention,omitempty"`
-	Metrics          *MetricsConfig          `json:"metrics,omitempty"`
-	Runtime          *RuntimeConfig          `json:"runtime,omitempty"`
-	ClientRxCoverage *ClientRxCoverageConfig `json:"clientRxCoverage,omitempty"`
-	GeoFilter        *GeoFilterConfig        `json:"geo_filter,omitempty"`
+	DBPath               string                      `json:"dbPath"`
+	MQTT                 *MQTTLegacy                 `json:"mqtt,omitempty"`
+	MQTTSources          []MQTTSource                `json:"mqttSources,omitempty"`
+	LogLevel             string                      `json:"logLevel,omitempty"`
+	ChannelKeysPath      string                      `json:"channelKeysPath,omitempty"`
+	ChannelKeys          map[string]string           `json:"channelKeys,omitempty"`
+	HashChannels         []string                    `json:"hashChannels,omitempty"`
+	HashRegions          []string                    `json:"hashRegions,omitempty"`
+	Retention            *RetentionConfig            `json:"retention,omitempty"`
+	Metrics              *MetricsConfig              `json:"metrics,omitempty"`
+	Runtime              *RuntimeConfig              `json:"runtime,omitempty"`
+	ClientRxCoverage     *ClientRxCoverageConfig     `json:"clientRxCoverage,omitempty"`
+	ClientRxObservations *ClientRxObservationsConfig `json:"clientRxObservations,omitempty"`
+	GeoFilter            *GeoFilterConfig            `json:"geo_filter,omitempty"`
 	// PathTrust configures the minimum path-hash prefix length trusted as
-	// mapping/topology evidence (issue #1784). Read by the neighbor-edge
-	// builder; see packetpath.MeetsPathTrust.
+	// mapping/topology evidence (issue #1784).
 	PathTrust          *PathTrustConfig     `json:"pathTrust,omitempty"`
 	ForeignAdverts     *ForeignAdvertConfig `json:"foreignAdverts,omitempty"`
 	ValidateSignatures *bool                `json:"validateSignatures,omitempty"`
@@ -76,7 +76,7 @@ type Config struct {
 	obsIATAWhitelistOnce   sync.Once
 
 	// ObserverBlacklist is a list of observer public keys to drop at ingest.
-	// Messages from blacklisted observers are silently discarded — no DB writes,
+	// Messages from blacklisted observers are silently discarded â€” no DB writes,
 	// no UpsertObserver, no observations, no metrics.
 	ObserverBlacklist []string `json:"observerBlacklist,omitempty"`
 
@@ -85,7 +85,7 @@ type Config struct {
 	obsBlacklistOnce      sync.Once
 
 	// NeighborEdgesMaxAgeDays controls neighbor_edges row retention
-	// (#1287 — moved from cmd/server). 0 = default 5.
+	// (#1287 â€” moved from cmd/server). 0 = default 5.
 	NeighborEdgesMaxAgeDays int `json:"neighborEdgesMaxAgeDays,omitempty"`
 
 	// IngestBufferSize caps the in-memory queue (number of MQTT messages) held
@@ -144,9 +144,22 @@ type ClientRxCoverageConfig struct {
 }
 
 // ClientRxCoverageEnabled reports whether the opt-in mobile client-RX coverage
-// feature is on. Absent/nil ⇒ off (the safe default).
+// feature is on. Absent/nil â‡’ off (the safe default).
 func (c *Config) ClientRxCoverageEnabled() bool {
 	return c.ClientRxCoverage != nil && c.ClientRxCoverage.Enabled
+}
+
+// ClientRxObservationsConfig controls the opt-in diagnostic RF observation
+// table. Separate from clientRxCoverage: a deployment may well want coverage
+// without the far higher-volume diagnostic stream.
+type ClientRxObservationsConfig struct {
+	Enabled bool `json:"enabled"`
+}
+
+// ClientRxObservationsEnabled reports whether diagnostic client RF observations
+// are recorded. Default false.
+func (c *Config) ClientRxObservationsEnabled() bool {
+	return c.ClientRxObservations != nil && c.ClientRxObservations.Enabled
 }
 
 // RetentionConfig controls how long stale nodes are kept before being moved to inactive_nodes.
@@ -167,6 +180,10 @@ type RetentionConfig struct {
 	// coverage rows in client_receptions / client_observers; 0 disables. Bounds
 	// the table the opt-in coverage feature would otherwise grow without limit.
 	ClientRxDays int `json:"clientRxDays"`
+	// ClientRxObsDays is the retention window (by rx_at) for the diagnostic
+	// client_rx_observations table; 0 disables. Shorter than clientRxDays â€”
+	// this table is diagnostic, not archival.
+	ClientRxObsDays int `json:"clientRxObsDays"`
 }
 
 // PacketDaysOrZero returns the configured retention.packetDays or 0
@@ -192,6 +209,14 @@ func (c *Config) ObserverPurgeDaysOrZero() int {
 func (c *Config) ClientRxDaysOrZero() int {
 	if c.Retention != nil && c.Retention.ClientRxDays > 0 {
 		return c.Retention.ClientRxDays
+	}
+	return 0
+}
+
+// ClientRxObsDaysOrZero returns retention.clientRxObsDays or 0 (disabled).
+func (c *Config) ClientRxObsDaysOrZero() int {
+	if c.Retention != nil && c.Retention.ClientRxObsDays > 0 {
+		return c.Retention.ClientRxObsDays
 	}
 	return 0
 }
@@ -318,7 +343,7 @@ func LoadConfig(path string) (*Config, error) {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("reading config %s: %w", path, err)
 		}
-		// Config file doesn't exist — use defaults (zero-config mode)
+		// Config file doesn't exist â€” use defaults (zero-config mode)
 		log.Printf("config file %s not found, using sensible defaults", path)
 	} else {
 		if err := json.Unmarshal(data, &cfg); err != nil {
@@ -331,7 +356,7 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.DBPath = v
 	}
 	if v := os.Getenv("MQTT_BROKER"); v != "" {
-		// Single broker from env — create a source
+		// Single broker from env â€” create a source
 		topic := os.Getenv("MQTT_TOPIC")
 		if topic == "" {
 			topic = "meshcore/#"
@@ -374,10 +399,10 @@ func LoadConfig(path string) (*Config, error) {
 //
 // Scheme mapping:
 //
-//	mqtt://  → tcp://   (paho plain TCP)
-//	mqtts:// → ssl://   (paho TLS over TCP)
-//	ws://               (paho WebSocket — passed through, no mapping needed)
-//	wss://              (paho WebSocket TLS — passed through, no mapping needed)
+//	mqtt://  â†’ tcp://   (paho plain TCP)
+//	mqtts:// â†’ ssl://   (paho TLS over TCP)
+//	ws://               (paho WebSocket â€” passed through, no mapping needed)
+//	wss://              (paho WebSocket TLS â€” passed through, no mapping needed)
 func (c *Config) ResolvedSources() []MQTTSource {
 	for i := range c.MQTTSources {
 		// paho uses tcp:// and ssl:// for plain MQTT; ws:// and wss:// are accepted natively.
@@ -387,7 +412,7 @@ func (c *Config) ResolvedSources() []MQTTSource {
 		} else if strings.HasPrefix(b, "mqtts://") {
 			c.MQTTSources[i].Broker = "ssl://" + b[8:]
 		}
-		// ws:// and wss:// pass through unchanged — paho handles WebSocket
+		// ws:// and wss:// pass through unchanged â€” paho handles WebSocket
 		// connections natively via gorilla/websocket.
 	}
 	return c.MQTTSources
