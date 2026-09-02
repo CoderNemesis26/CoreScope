@@ -3285,3 +3285,215 @@ func TestInsertClientRxObservation(t *testing.T) {
 // failure mode isn't reachable from a black-box test of applySchema without
 // contorting production code. The fix itself (db.go, transport_codes_v1
 // block) still stands, matching the observers_clock_naive_v1 pattern.
+
+func TestInsertClientRfSample(t *testing.T) {
+	s := newTestStore(t)
+	posAcc := 12.5
+	snr := -6.75
+	errs := 7
+	nf := -119
+	rssi := -92
+	battery := 4021
+	queueLen := 3
+	txAir := int64(341)
+	rxAir := int64(20877)
+	recv := int64(18422)
+	sent := int64(290)
+	floodRx := int64(17110)
+	directRx := int64(1312)
+	floodTx := int64(212)
+	directTx := int64(78)
+	o := &ClientRfSample{
+		RxPubkey: "aa11", SampledAt: "2026-08-17T10:00:00.000Z", IngestedAt: "2026-08-17T10:00:01Z",
+		Lat: 51.2, Lon: 4.4, PosAccM: &posAcc, Stationary: true, UptimeSecs: 84213,
+		BatteryMV: &battery, QueueLen: &queueLen, Errors: &errs, NoiseFloor: &nf, LastRSSI: &rssi,
+		LastSNR: &snr, TxAirSecs: &txAir, RxAirSecs: &rxAir, Recv: &recv, Sent: &sent,
+		FloodRx: &floodRx, DirectRx: &directRx, FloodTx: &floodTx, DirectTx: &directTx,
+	}
+	ins, err := s.InsertClientRfSample(o)
+	if err != nil || !ins {
+		t.Fatalf("insert: ins=%v err=%v", ins, err)
+	}
+	ins, err = s.InsertClientRfSample(o)
+	if err != nil || ins {
+		t.Fatalf("duplicate must be idempotent: ins=%v err=%v", ins, err)
+	}
+
+	// Every column gets a distinct, non-symmetric value and is read back, so a
+	// positional transposition between any two same-typed neighbours in the
+	// 23-column INSERT (e.g. flood_rx/direct_rx, or recv/sent) is detectable —
+	// row-counting alone would pass either way.
+	var gotLat, gotLon, gotPosAccM, gotLastSNR float64
+	var gotStationary, gotErrors, gotNoiseFloor, gotLastRSSI, gotBatteryMV, gotQueueLen int
+	var gotUptimeSecs, gotTxAirSecs, gotRxAirSecs, gotRecv, gotSent, gotFloodRx, gotDirectRx, gotFloodTx, gotDirectTx int64
+	var gotRecvErrors *int64
+	if err := s.db.QueryRow(`
+		SELECT lat, lon, pos_acc_m, stationary, uptime_secs, battery_mv, queue_len,
+		       errors, noise_floor, last_rssi, last_snr, tx_air_secs, rx_air_secs,
+		       recv, sent, flood_rx, direct_rx, flood_tx, direct_tx, recv_errors
+		FROM client_rf_samples WHERE sampled_at = ?`, o.SampledAt).Scan(
+		&gotLat, &gotLon, &gotPosAccM, &gotStationary, &gotUptimeSecs, &gotBatteryMV, &gotQueueLen,
+		&gotErrors, &gotNoiseFloor, &gotLastRSSI, &gotLastSNR, &gotTxAirSecs, &gotRxAirSecs,
+		&gotRecv, &gotSent, &gotFloodRx, &gotDirectRx, &gotFloodTx, &gotDirectTx, &gotRecvErrors); err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if gotLat != 51.2 || gotLon != 4.4 {
+		t.Errorf("lat/lon = %v/%v, want 51.2/4.4 (a lat<->lon swap would pass with symmetric values)", gotLat, gotLon)
+	}
+	if gotPosAccM != 12.5 {
+		t.Errorf("pos_acc_m = %v, want 12.5", gotPosAccM)
+	}
+	if gotStationary != 1 {
+		t.Errorf("stationary = %d, want 1", gotStationary)
+	}
+	if gotUptimeSecs != 84213 {
+		t.Errorf("uptime_secs = %d, want 84213", gotUptimeSecs)
+	}
+	if gotBatteryMV != 4021 {
+		t.Errorf("battery_mv = %d, want 4021", gotBatteryMV)
+	}
+	if gotQueueLen != 3 {
+		t.Errorf("queue_len = %d, want 3", gotQueueLen)
+	}
+	if gotErrors != 7 {
+		t.Errorf("errors = %d, want 7", gotErrors)
+	}
+	if gotNoiseFloor != -119 {
+		t.Errorf("noise_floor = %d, want -119", gotNoiseFloor)
+	}
+	if gotLastRSSI != -92 {
+		t.Errorf("last_rssi = %d, want -92", gotLastRSSI)
+	}
+	if gotLastSNR != -6.75 {
+		t.Errorf("last_snr = %v, want -6.75", gotLastSNR)
+	}
+	if gotTxAirSecs != 341 {
+		t.Errorf("tx_air_secs = %d, want 341", gotTxAirSecs)
+	}
+	if gotRxAirSecs != 20877 {
+		t.Errorf("rx_air_secs = %d, want 20877", gotRxAirSecs)
+	}
+	if gotRecv != 18422 {
+		t.Errorf("recv = %d, want 18422", gotRecv)
+	}
+	if gotSent != 290 {
+		t.Errorf("sent = %d, want 290", gotSent)
+	}
+	if gotFloodRx != 17110 {
+		t.Errorf("flood_rx = %d, want 17110", gotFloodRx)
+	}
+	if gotDirectRx != 1312 {
+		t.Errorf("direct_rx = %d, want 1312", gotDirectRx)
+	}
+	if gotFloodTx != 212 {
+		t.Errorf("flood_tx = %d, want 212", gotFloodTx)
+	}
+	if gotDirectTx != 78 {
+		t.Errorf("direct_tx = %d, want 78", gotDirectTx)
+	}
+	if gotRecvErrors != nil {
+		t.Errorf("recv_errors = %v, want NULL on firmware that cannot count them", gotRecvErrors)
+	}
+
+	// A second sample, at a different sampled_at, proves recv_errors round-trips
+	// non-NULL too — the first sample only covers the NULL direction.
+	re := int64(55)
+	o2 := &ClientRfSample{
+		RxPubkey: "aa11", SampledAt: "2026-08-17T10:00:15.000Z", IngestedAt: "2026-08-17T10:00:16Z",
+		Lat: 51.2, Lon: 4.4, Stationary: true, UptimeSecs: 84228, RecvErrors: &re,
+	}
+	if ins, err = s.InsertClientRfSample(o2); err != nil || !ins {
+		t.Fatalf("insert second sample: ins=%v err=%v", ins, err)
+	}
+	var gotRecvErrors2 *int64
+	if err := s.db.QueryRow(`SELECT recv_errors FROM client_rf_samples WHERE sampled_at = ?`, o2.SampledAt).
+		Scan(&gotRecvErrors2); err != nil {
+		t.Fatalf("read second sample: %v", err)
+	}
+	if gotRecvErrors2 == nil || *gotRecvErrors2 != 55 {
+		t.Errorf("recv_errors = %v, want 55", gotRecvErrors2)
+	}
+}
+
+// TestPruneClientRfSamplesUsesIndex verifies the RF-sample reaper's
+// DELETE ... WHERE sampled_at < ? seeks idx_crf_prune rather than
+// full-scanning under the writer lock, mirroring
+// TestPruneClientRxObservationsUsesIndex for the sibling table. May pass
+// immediately since idx_crf_prune already exists (Task 4) — in that case
+// this is a regression guard.
+func TestPruneClientRfSamplesUsesIndex(t *testing.T) {
+	s := newTestStore(t)
+	rows, err := s.db.Query(`EXPLAIN QUERY PLAN DELETE FROM client_rf_samples WHERE sampled_at < ?`, "2026-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	plan := ""
+	for rows.Next() {
+		var id, parent, notused int
+		var detail string
+		if err := rows.Scan(&id, &parent, &notused, &detail); err != nil {
+			t.Fatal(err)
+		}
+		plan += detail + "\n"
+	}
+	if !strings.Contains(plan, "idx_crf_prune") {
+		t.Fatalf("retention DELETE should use idx_crf_prune, plan was:\n%s", plan)
+	}
+}
+
+// TestPruneOldClientRfSamples verifies the RF-sample reaper deletes rows
+// older than the window and keeps recent ones, and that days=0 disables it —
+// mirroring TestPruneOldClientRxObservations for the sibling table. It also
+// covers the case an RFC3339 (no-millisecond) cutoff gets wrong: sampled_at
+// is stored via rxTimeMillisLayout, and a row sampled 500ms after the cutoff
+// instant — chronologically newer, so it must survive — has a string form
+// like "...T10:00:00.500Z" that sorts lexicographically BEFORE a bare
+// "...T10:00:00Z" cutoff (since '.' is 0x2E and 'Z' is 0x5A). An
+// RFC3339-formatted cutoff would therefore wrongly delete it; a
+// millisecond-formatted cutoff correctly keeps it.
+func TestPruneOldClientRfSamples(t *testing.T) {
+	s := newTestStore(t)
+	now := time.Now().UTC()
+	recent := now.AddDate(0, 0, -1).Format(rxTimeMillisLayout)
+	old := now.AddDate(0, 0, -40).Format(rxTimeMillisLayout)
+	cutoffInstant := now.AddDate(0, 0, -7)
+	boundary := cutoffInstant.Add(500 * time.Millisecond).Format(rxTimeMillisLayout)
+
+	mk := func(sampledAt string) *ClientRfSample {
+		return &ClientRfSample{
+			RxPubkey: "aa11", SampledAt: sampledAt, IngestedAt: sampledAt,
+			Lat: 51.2, Lon: 4.4, UptimeSecs: 100,
+		}
+	}
+	if _, err := s.InsertClientRfSample(mk(recent)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InsertClientRfSample(mk(old)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.InsertClientRfSample(mk(boundary)); err != nil {
+		t.Fatal(err)
+	}
+
+	if n, _ := s.PruneOldClientRfSamples(0); n != 0 {
+		t.Fatalf("days=0 must be a no-op, got %d", n)
+	}
+	n, err := s.PruneOldClientRfSamples(7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatalf("expected 1 old sample pruned, got %d", n)
+	}
+	var remaining int
+	s.db.QueryRow(`SELECT COUNT(*) FROM client_rf_samples`).Scan(&remaining)
+	if remaining != 2 {
+		t.Fatalf("expected 2 samples remaining (recent + boundary), got %d", remaining)
+	}
+	var boundarySurvived int
+	s.db.QueryRow(`SELECT COUNT(*) FROM client_rf_samples WHERE sampled_at = ?`, boundary).Scan(&boundarySurvived)
+	if boundarySurvived != 1 {
+		t.Fatalf("boundary row (500ms after cutoff instant) must survive; an RFC3339 (no-ms) cutoff would wrongly delete it because '.' < 'Z' lexicographically — got %d", boundarySurvived)
+	}
+}

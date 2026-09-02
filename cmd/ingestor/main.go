@@ -302,6 +302,17 @@ func main() {
 		}
 	}
 
+	// Diagnostic client_rf_samples retention: separate window, independent
+	// of clientRxDays/clientRxObsDays. 0 = disabled.
+	clientRfDays := cfg.ClientRfDaysOrZero()
+	if clientRfDays > 0 {
+		if n, err := store.PruneOldClientRfSamples(clientRfDays); err != nil {
+			log.Printf("[prune] client_rf_samples: %v", err)
+		} else if n > 0 {
+			log.Printf("[prune] startup pruned %d client_rf_samples older than %d days", n, clientRfDays)
+		}
+	}
+
 	vacuumPages := cfg.IncrementalVacuumPages()
 	store.RunIncrementalVacuum(vacuumPages)
 
@@ -367,10 +378,11 @@ func main() {
 	}
 
 	// Daily ticker for client-RX coverage retention (#1727), reused for the
-	// diagnostic client_rx_observations retention (Task 6) rather than
-	// starting a second ticker — the two flags are independent (0 disables
-	// each separately), so the ticker itself must run when either is set.
-	if clientRxDays > 0 || clientRxObsDays > 0 {
+	// diagnostic client_rx_observations and client_rf_samples retention
+	// (Task 6) rather than starting a second ticker — the three flags are
+	// independent (0 disables each separately), so the ticker itself must
+	// run when any is set.
+	if clientRxDays > 0 || clientRxObsDays > 0 || clientRfDays > 0 {
 		clientRxRetentionTicker := time.NewTicker(24 * time.Hour)
 		go func() {
 			for range clientRxRetentionTicker.C {
@@ -388,6 +400,13 @@ func main() {
 						store.RunIncrementalVacuum(vacuumPages)
 					}
 				}
+				if clientRfDays > 0 {
+					if n, err := store.PruneOldClientRfSamples(clientRfDays); err != nil {
+						log.Printf("[prune] client_rf_samples: %v", err)
+					} else if n > 0 {
+						store.RunIncrementalVacuum(vacuumPages)
+					}
+				}
 			}
 		}()
 		if clientRxDays > 0 {
@@ -395,6 +414,9 @@ func main() {
 		}
 		if clientRxObsDays > 0 {
 			log.Printf("[prune] auto-prune enabled: client_rx_observations older than %d days will be removed daily", clientRxObsDays)
+		}
+		if clientRfDays > 0 {
+			log.Printf("[prune] auto-prune enabled: client_rf_samples older than %d days will be removed daily", clientRfDays)
 		}
 	}
 
@@ -650,30 +672,39 @@ func handleMessage(store *Store, tag string, source MQTTSource, m mqtt.Message, 
 		return
 	}
 
-	// Mobile client RX coverage: dedicated topic meshcore/client/{PUBLIC_KEY}/packets.
-	// A roaming companion reports where it directly heard a node; handled in isolation
-	// from the observer/observations path. EMQX ACL binds parts[2] to the client's own key.
+	// Mobile client topics: meshcore/client/{PUBLIC_KEY}/packets (RX coverage)
+	// and meshcore/client/{PUBLIC_KEY}/rf (RF environment samples). A roaming
+	// companion reports where it directly heard a node, or its own radio's
+	// counters; both are handled in isolation from the observer/observations
+	// path. EMQX ACL binds parts[2] to the client's own key.
 	//
 	// The topic match and the enable-gate MUST be separate: matching on
 	// parts[1]=="client" always returns from this branch, whatever the config
-	// says. The gate only decides drop-vs-handle. Previously the gate sat
-	// inside the topic match, so a disabled gate made the whole condition
-	// false and fell through to the observer path below, where parts[1]
-	// ("client") would be taken as a region and the companion pubkey as an
-	// observer id — silently poisoning the region list, and worse now that
-	// fullRfLog multiplies client-topic volume.
+	// says. The gate only decides drop-vs-handle per sub-topic. Previously the
+	// gate sat inside the topic match, so a disabled gate made the whole
+	// condition false and fell through to the observer path below, where
+	// parts[1] ("client") would be taken as a region and the companion pubkey
+	// as an observer id — silently poisoning the region list, and worse now
+	// that fullRfLog multiplies client-topic volume.
 	if len(parts) >= 4 && parts[1] == "client" {
-		if !cfg.ClientRxCoverageEnabled() || parts[3] != "packets" {
-			return
-		}
 		// The observer blacklist (checked below on the observer path) only runs
 		// there, so a blacklisted operator could otherwise skirt it via the
-		// client topic (#1). Enforce it here before any coverage write.
+		// client topic (#1). Enforce it here before any client-topic write, for
+		// every sub-topic.
 		if cfg.IsObserverBlacklisted(parts[2]) {
 			log.Printf("MQTT [%s] client %.8s blacklisted, dropping", tag, parts[2])
 			return
 		}
-		handleClientPacket(store, cfg, tag, parts[2], msg, channelKeys, regionKeys)
+		switch parts[3] {
+		case "packets":
+			if cfg.ClientRxCoverageEnabled() {
+				handleClientPacket(store, cfg, tag, parts[2], msg, channelKeys, regionKeys)
+			}
+		case "rf":
+			if cfg.ClientRfSamplesEnabled() {
+				handleClientRfSample(store, tag, parts[2], msg)
+			}
+		}
 		return
 	}
 
