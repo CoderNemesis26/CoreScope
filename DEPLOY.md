@@ -11,7 +11,7 @@ docker run -d --name corescope \
   -p 80:80 \
   -v corescope-data:/app/data \
   -e DISABLE_CADDY=true \
-  ghcr.io/codernemesis26/corescope:edge
+  ghcr.io/ComchanNet/corescope:edge
 ```
 
 Open `http://localhost` — done.
@@ -19,7 +19,7 @@ Open `http://localhost` — done.
 ### Docker Compose
 
 ```bash
-curl -sL https://raw.githubusercontent.com/codernemesis26/CoreScope/master/docker-compose.example.yml \
+curl -sL https://raw.githubusercontent.com/ComchanNet/CoreScope/master/docker-compose.example.yml \
   -o docker-compose.yml
 docker compose up -d
 ```
